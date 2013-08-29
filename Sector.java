@@ -3,45 +3,41 @@ import java.util.Random;
 
 public class Sector extends Thread{
 	
-	static int innerPoint = 0;
+	static long innerPoints = 0;
+	static long totalPoints = 500000000;
+	static int numOfThreads = 4;
+	static long pointsPerThread = totalPoints / numOfThreads; 
 	
 	public void run() {
+		long subInnerPoints = 0;
 		Random random = new Random();
-		Point point = new Point(random.nextDouble(), random.nextDouble());
-
-		if (point.getDistance() <= 1) {
-			synchronized (this) {
-				innerPoint ++;
-			}
+		float x, y;
+		for (long i=0; i<Sector.pointsPerThread; i++) {
+			x = random.nextFloat();
+			y = random.nextFloat();
+			if (Math.sqrt(x*x + y*y) <= 1.0)
+				subInnerPoints++;
+		}
+		
+		synchronized (this) {
+			innerPoints = innerPoints + subInnerPoints;
 		}
 	}
 	
 	public static void main (String[] args) throws InterruptedException {
-		
-		long numOfThread = 100000;
 		Sector sector = new Sector();
-		Thread thread = null;
+		Thread[] thread = new Thread[Sector.numOfThreads];
 		
-		for (long i=0; i<numOfThread; i++) {
-			thread = new Thread(sector);
-			thread.start();
-			
+		long startTime = System.currentTimeMillis();
+		for (int i=0; i<Sector.numOfThreads; i++) {
+			thread[i] = new Thread(sector);
+			thread[i].start();
 		}
-		thread.join();
-		System.out.printf ("PI/4: %.3f \n", (double)Sector.innerPoint / numOfThread);
-	}
-	
-
-}
-
-class Point {
-	double x,y;
-	public Point (double x, double y) {
-		this.x = x;
-		this.y = y;
-	}
-	
-	public double getDistance () {
-		return Math.sqrt(Math.pow(x,2)+Math.pow(y,2));
+		
+		for (int i=0; i<Sector.numOfThreads; i++)
+			thread[i].join();
+		
+		long time = System.currentTimeMillis() - startTime;
+		System.out.printf ("PI/4: %.3f [%.3fÃÊ]\n", (float)Sector.innerPoints / (float)Sector.totalPoints, (float)time/1000);
 	}
 }
